@@ -1,7 +1,7 @@
 ---
 title: Galerie : les 101 figurines construites couche par couche
 date: 2026-11-26
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: en cours
 summary: Chaque BrickHeadz officielle à côté de ses deux constructions couche par couche (depuis le volume 3D du vrai modèle, et depuis la fiche de 5 vues). Toutes sont montables d'après le moteur de constructibilité.
 tags: brickheadz, galerie, construction

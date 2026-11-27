@@ -1,7 +1,7 @@
 ---
 title: "Défi : reproduire une figurine en costume"
 date: 2026-11-27
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: en cours
 cover: /research/assets/17-cover.jpg
 summary: À partir d'une seule image (homme en costume bleu marine, BrickHeadz générée par Gemini), construire la figurine la plus fidèle et la plus propre possible, en appliquant tout ce qu'on a appris. 121 pièces réelles, rien ne vole, aucune collision.

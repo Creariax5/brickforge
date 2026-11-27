@@ -1,7 +1,7 @@
 ---
 title: L'optimiseur de remplissage, en direct
 date: 2026-11-26
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: en cours
 cover: /research/assets/12-cover.jpg
 summary: Regarder l'algorithme poser les pièces une à une sur la forme visée (maillage Hunyuan3D ou BrickHeadz officielle), avec la couche en cours et les silhouettes qui montent vers l'objectif de 90 %.

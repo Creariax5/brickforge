@@ -1,7 +1,7 @@
 ---
 title: Reconstruction par silhouettes (voxels)
 date: 2026-11-24
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: écarté
 summary: Volume sculpté à partir des silhouettes puis pavé de plaques. Forme reconnaissable, mais rendu « voxel » sans pentes.
 cover: /research/assets/01-voxels-apercu.png

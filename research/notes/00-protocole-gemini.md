@@ -1,7 +1,7 @@
 ---
 title: Protocole Gemini (concept et vues)
 date: 2026-11-24
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: terminé
 summary: Comment obtenir de Gemini un concept LEGO crédible et des vues cohérentes entre elles.
 cover: /thumb/imgs/lego_tortue/concept.jpeg?w=640

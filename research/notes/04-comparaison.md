@@ -1,7 +1,7 @@
 ---
 title: Comparaison rendu / photos et optimisation
 date: 2026-11-25
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: terminé
 summary: Caméra calée sur chaque vue Gemini, scores de silhouette et de contour, puis réglages ajustés automatiquement.
 cover: /research/assets/05-superposition.jpg

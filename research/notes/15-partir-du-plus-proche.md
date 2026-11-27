@@ -1,7 +1,7 @@
 ---
 title: Changer de méthode : partir de la BrickHeadz la plus proche
 date: 2026-11-27
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: en cours
 cover: /research/assets/15-cover.jpg
 summary: Les plafonds mesurés montrent qu’aucune construction « brique par brique » ne dépasse ~89 % de volume. Partir de la BrickHeadz officielle la plus proche puis la retoucher fait mieux sur la plupart des formes (3 formes sur 12 au-dessus de 95 %). Et Hunyuan3D contre TRELLIS.2, depuis la photo et depuis 3 vues.

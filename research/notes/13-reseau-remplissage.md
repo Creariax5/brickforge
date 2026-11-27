@@ -1,7 +1,7 @@
 ---
 title: Un réseau qui apprend à remplir
 date: 2026-11-26
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: en cours
 cover: /research/assets/13-cover.png
 summary: Un petit réseau 3D apprend dans quel ordre poser les pièces pour coller au mieux à la forme (itération d'expert, façon AlphaZero simplifié). Calcul sur le Mac Studio, suivi en direct ici.

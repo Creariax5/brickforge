@@ -1,7 +1,7 @@
 ---
 title: Objectifs et bilan d'étape
 date: 2026-11-27
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: en cours
 cover: /research/assets/03-tortue-conception.png
 summary: Où on en est après 17 recherches, ce qui marche, ce qui bloque, et les deux objectifs fixés : 1. une BrickHeadz depuis une image, 2. n'importe quel objet. Les méthodes de l'objectif 1 doivent rester universelles.

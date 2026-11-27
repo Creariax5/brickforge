@@ -1,7 +1,7 @@
 ---
 title: Reconnaissance des pièces avec SAM
 date: 2026-11-24
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: archivé
 summary: Découpage de la vue de dessus avec Segment Anything, puis identification par règles (taille, tenons, dégradé).
 cover: /research/assets/02-sam-segments.jpg

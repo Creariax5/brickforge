@@ -1,7 +1,7 @@
 ---
 title: Hunyuan contre la vraie LEGO
 date: 2026-11-26
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: en cours
 cover: /research/assets/14-cover.jpg
 summary: Le maillage Hunyuan de Donald, recalé sur la vraie BrickHeadz 40377 et superposé en 3D. Où il dépasse, où il manque, pourquoi les scores semblaient bas, et ce qu'il faut corriger chez nous (miroir, mesure, pièces).

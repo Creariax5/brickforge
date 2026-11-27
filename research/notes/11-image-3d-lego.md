@@ -1,7 +1,7 @@
 ---
 title: Image → 3D → LEGO : un modèle pré-entraîné donne la forme
 date: 2026-11-26
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: en cours
 cover: /research/assets/11-cover.jpg
 summary: Au lieu de deviner le volume à partir de 5 vues, on demande à un modèle image → 3D pré-entraîné (Hunyuan3D 2.1, sur le Mac Studio) de reconstruire l'objet en 3D à partir d'une seule image. Notre constructeur couche par couche le transforme ensuite en figurine LEGO montable.

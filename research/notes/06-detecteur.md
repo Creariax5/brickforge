@@ -1,7 +1,7 @@
 ---
 title: Détecteur de pièces entraîné sur données synthétiques
 date: 2026-11-25
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: terminé
 summary: Lire les pièces directement dans les images Gemini grâce à un détecteur YOLO entraîné sur des rendus étiquetés automatiquement.
 cover: /research/assets/07-synth.jpg

@@ -1,7 +1,7 @@
 ---
 title: Conception pièce par pièce (tortue)
 date: 2026-11-24
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: terminé
 summary: Claude lit les vues et pose chaque pièce dans un script de montage. Le résultat le plus proche d'un set à ce jour.
 cover: /research/assets/03-tortue-conception.png

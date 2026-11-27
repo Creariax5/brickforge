@@ -1,7 +1,7 @@
 ---
 title: Focus BrickHeadz : le gabarit des figurines officielles
 date: 2026-11-26
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: en cours
 summary: Plutôt que de construire n'importe quel objet, on vise d'abord un format fixe, les BrickHeadz. On analyse les 76 sets officiels en 3D (101 figurines) pour en tirer le gabarit, le squelette commun, les zones qui changent d'un personnage à l'autre et les pièces de chaque zone.
 tags: brickheadz, données, gabarit

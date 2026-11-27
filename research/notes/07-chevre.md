@@ -1,7 +1,7 @@
 ---
 title: Chèvre : photo seule, puis concept Gemini
 date: 2026-11-25
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: terminé
 summary: Deux conceptions pièce par pièce de la même chèvre, l'une d'après la photo, l'autre d'après le concept et la liste de pièces de Gemini.
 cover: /thumb/imgs/lego_chevre_v2/concept.jpeg?w=640

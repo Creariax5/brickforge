@@ -1,7 +1,7 @@
 ---
 title: Veille : OurBricks et données de vrais modèles
 date: 2026-11-25
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: en cours
 cover: /research/assets/08-cover.jpg
 summary: Comment fonctionne un concurrent qui fait des maisons en briques, et où trouver de vrais modèles LEGO avec leur ordre de montage pour entraîner nos modèles.

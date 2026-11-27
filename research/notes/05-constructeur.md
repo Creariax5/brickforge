@@ -1,7 +1,7 @@
 ---
 title: Constructeur automatique pièce par pièce
 date: 2026-11-25
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: écarté
 summary: Moteur qui emboîte les pièces sur des tenons libres pour remplir la forme cible. Rapide et gratuit, mais visuellement pauvre.
 cover: /research/assets/06-tortue-auto.png

@@ -1,7 +1,7 @@
 ---
 title: Le squelette commun des BrickHeadz
 date: 2026-11-27
-authors: Florian De Martini, Claude (Anthropic)
+authors: Florian DEMARTINI, Claude (Anthropic)
 status: en cours
 cover: /research/assets/16-cover.jpg
 summary: Ce qui ne change presque jamais d'une BrickHeadz à l'autre, vu en 3D. En volume, le gabarit est très stable (83 % de la matière d'une figurine est commune à 70 % des figurines) ; en pièces, presque rien n'est exactement au même endroit, sauf le noyau de tête en briques à tenons latéraux.
