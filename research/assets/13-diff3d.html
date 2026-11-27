@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Donald : vraie LEGO vs maillage Hunyuan recalé</title>
+<style>
+  :root { --bg: #f2f1ed; --panel: #fff; --fg: #1f1e1b; --muted: #6b665c; --line: #e2ded6; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161513; --panel: #1f1e1b; --fg: #ebe8e1; --muted: #a39e93; --line: #36332e; } }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif; }
+  #wrap { display: grid; grid-template-columns: 1fr 250px; height: 100%; }
+  #stage { position: relative; min-height: 420px; background: linear-gradient(#f4f2ee, #e7e3dc); }
+  #stage canvas { display: block; width: 100%; height: 100%; }
+  aside { background: var(--panel); border-left: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+  h3 { margin: 0; font-size: 14px; }
+  label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .sw { width: 14px; height: 14px; border-radius: 3px; flex: none; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .big { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; }
+  button { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); cursor: pointer; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage"></div>
+  <aside>
+    <h3>Donald : vraie LEGO vs Hunyuan recalé</h3>
+    <div><span class="muted">Volume commun</span><div class="big" id="vol">—</div><span class="muted" id="counts"></span></div>
+    <label><input type="checkbox" id="cMiss" checked><span class="sw" style="background:#d6402a"></span><span><b>Manque</b> : plein dans la vraie LEGO, vide chez Hunyuan</span></label>
+    <label><input type="checkbox" id="cExtra" checked><span class="sw" style="background:#2f6fb0"></span><span><b>En trop</b> : plein chez Hunyuan, vide dans la vraie LEGO</span></label>
+    <label><input type="checkbox" id="cCom" checked><span class="sw" style="background:#9aa0a6"></span><span>Commun (peau seulement)</span></label>
+    <label><input type="checkbox" id="cLego"><span class="sw" style="background:#e0b34a"></span><span>Vraie LEGO en briques (transparente)</span></label>
+    <div><span class="muted">Opacité du commun</span><input type="range" id="op" min="0" max="100" value="18"></div>
+    <div><span class="muted">Coupe horizontale : hauteur max affichée</span><input type="range" id="cut" min="0" max="90" value="90"><span class="muted" id="cutl"></span></div>
+    <div class="row"><button data-v="front">Face</button><button data-v="side">Profil</button><button data-v="top">Dessus</button><button data-v="iso">3/4</button></div>
+    <p class="muted">Une case = ½ tenon × ½ plate × ½ tenon. Glisser pour tourner, molette pour zoomer, clic droit pour déplacer.</p>
+  </aside>
+</div>
+<script>
+"use strict";
+(async () => {
+  const D = await (await fetch("13-diff3d.json")).json();
+  const stage = document.getElementById("stage");
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  stage.append(renderer.domElement);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x7d756a, 0.9));
+  const l1 = new THREE.DirectionalLight(0xffffff, 0.6); l1.position.set(15, 30, -20); scene.add(l1);
+  const l2 = new THREE.DirectionalLight(0xffffff, 0.3); l2.position.set(-20, 10, 25); scene.add(l2);
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 2000);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  // repère : LDU / 20, y vers le haut
+  const S = 1 / 20, cx = D.cx * S, cy = D.cy * S;
+  const pos = ([i, j, k]) => [(i - D.c0 + 0.5) * cx, (j + 0.5) * cy, (k - D.c0 + 0.5) * cx];
+  function cells(list, color, opacity) {
+    const geo = new THREE.BoxGeometry(cx * 0.96, cy * 0.96, cx * 0.96);
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
+    const m = new THREE.InstancedMesh(geo, mat, list.length);
+    const o = new THREE.Object3D();
+    list.forEach((c, n) => { o.position.set(...pos(c)); o.updateMatrix(); m.setMatrixAt(n, o.matrix); });
+    m.userData.cells = list;
+    return m;
+  }
+  const miss = cells(D.miss, 0xd6402a, 1), extra = cells(D.extra, 0x2f6fb0, 1), com = cells(D.common, 0x9aa0a6, 0.18);
+  scene.add(com, miss, extra);
+  document.getElementById("vol").textContent = Math.round(D.stats.volume * 1000) / 10 + " %";
+  document.getElementById("counts").textContent = `vraie ${D.stats.lego} cases · Hunyuan ${D.stats.hunyuan} · manque ${D.stats.miss} · en trop ${D.stats.extra}`;
+
+  // vraie LEGO en briques (géométrie servie par l'application)
+  let lego = null;
+  async function buildLego() {
+    const parts = [...new Set(D.lego.map((p) => p.part))];
+    const r = await (await fetch("/api/parts-batch", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(parts) })).json();
+    const f32 = (b64) => { const bin = atob(b64), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); return new Float32Array(buf.buffer); };
+    let n = 0; const g = {};
+    for (const p of parts) if (r[p]) { g[p] = f32(r[p].tris); }
+    for (const p of D.lego) if (g[p.part]) n += g[p.part].length;
+    const arr = new Float32Array(n); let o = 0;
+    for (const p of D.lego) {
+      const t = g[p.part]; if (!t) continue;
+      const [x, y, z, a, b, c, d, e, f, gg, hh, i] = p.m;
+      for (let k = 0; k < t.length; k += 3) { const vx = t[k], vy = t[k + 1], vz = t[k + 2];
+        arr[o + k] = (a * vx + b * vy + c * vz + x) * S; arr[o + k + 1] = -(d * vx + e * vy + f * vz + y) * S; arr[o + k + 2] = (gg * vx + hh * vy + i * vz + z) * S; }
+      o += t.length;
+    }
+    const bg = new THREE.BufferGeometry(); bg.setAttribute("position", new THREE.BufferAttribute(arr, 3)); bg.computeVertexNormals();
+    lego = new THREE.Mesh(bg, new THREE.MeshStandardMaterial({ color: 0xe0b34a, transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide }));
+    scene.add(lego);
+  }
+
+  const $ = (id) => document.getElementById(id);
+  $("cMiss").onchange = (e) => (miss.visible = e.target.checked);
+  $("cExtra").onchange = (e) => (extra.visible = e.target.checked);
+  $("cCom").onchange = (e) => (com.visible = e.target.checked);
+  $("cLego").onchange = async (e) => { if (e.target.checked && !lego) await buildLego(); if (lego) lego.visible = e.target.checked; };
+  $("op").oninput = (e) => { com.material.opacity = e.target.value / 100; com.material.transparent = e.target.value < 100; com.material.depthWrite = e.target.value >= 100; com.material.needsUpdate = true; };
+  const cutl = $("cutl");
+  function applyCut(maxj) {
+    for (const m of [miss, extra, com]) {
+      const o = new THREE.Object3D(); let n = 0;
+      for (const c of m.userData.cells) { if (c[1] > maxj) continue; o.position.set(...pos(c)); o.updateMatrix(); m.setMatrixAt(n++, o.matrix); }
+      m.count = n; m.instanceMatrix.needsUpdate = true;
+    }
+    cutl.textContent = maxj >= 89 ? " tout" : ` jusqu'à la plate ${Math.floor(maxj / 2) + 1}`;
+  }
+  $("cut").oninput = (e) => applyCut(+e.target.value);
+  applyCut(90);
+
+  const box = new THREE.Box3();                                  // boîte des cases (pas de la géométrie d'une seule case)
+  for (const c of [...D.common, ...D.miss, ...D.extra]) box.expandByPoint(new THREE.Vector3(...pos(c)));
+  const ctr = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+  const dist = Math.max(size.x, size.y, size.z) * 2.4;
+  controls.target.copy(ctr);
+  const views = { front: [0, 0, -1], side: [1, 0, 0], top: [0, 1, 0.001], iso: [-0.45, 0.3, -0.85] };
+  function view(v) { const d = new THREE.Vector3(...views[v]).normalize().multiplyScalar(dist); camera.position.copy(ctr).add(d); controls.update(); }
+  document.querySelectorAll("button[data-v]").forEach((b) => (b.onclick = () => view(b.dataset.v)));
+  view("iso");
+  camera.near = dist / 50; camera.far = dist * 20; camera.updateProjectionMatrix();
+  const loop = () => {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (Math.abs(renderer.domElement.width / renderer.getPixelRatio() - w) > 1 || Math.abs(renderer.domElement.height / renderer.getPixelRatio() - h) > 1) {
+      renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop);
+  };
+  loop();
+})();
+</script>
+</body>
+</html>

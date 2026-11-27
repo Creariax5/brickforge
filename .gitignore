@@ -1,0 +1,18 @@
+.venv/
+out/
+__pycache__/
+data/
+*.pyc
+.env
+.env.*
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+.claude/settings.local.json
+.brickforge.local
+# photos officielles LEGO (Rebrickable) : non redistribuables, re-téléchargées par les scripts
+imgs/lego_bh_*/photo.jpg
+imgs/lego_omr_*/photo.jpg
+research/assets/15-donald-photo.png
+imgs/lego_chevre_*/photo.png   # photo trouvée sur le web, droits inconnus

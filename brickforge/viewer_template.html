@@ -1,0 +1,319 @@
+<meta charset="utf-8">
+<title>__TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: atelier de montage — grand plateau 3D à gauche, fiche technique à droite (empilée sur mobile) */
+:root {
+  --bg: #f3f2ee;
+  --panel: #ffffff;
+  --fg: #23211d;
+  --muted: #6b675f;
+  --line: #dcd8cf;
+  --stage: #e7e4dc;
+  --accent: #c8501e;
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171614; --panel: #201f1c; --fg: #ece9e2; --muted: #a29d93; --line: #35332e; --stage: #26241f; --accent: #ee7a45; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171614; --panel: #201f1c; --fg: #ece9e2; --muted: #a29d93; --line: #35332e; --stage: #26241f; --accent: #ee7a45; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); line-height: 1.5; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 16px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.75rem; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+.tag { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.stage { position: relative; background: var(--stage); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  aspect-ratio: 4 / 3; max-width: 100%; }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.hint { position: absolute; left: 12px; bottom: 10px; font-size: 0.75rem; color: var(--muted); pointer-events: none; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; margin-top: 12px; }
+.controls label { font-size: 0.8125rem; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.controls input[type=range] { width: 180px; accent-color: var(--accent); }
+.btn { font: 500 0.8125rem var(--font-body); color: var(--fg); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.btn:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
+aside { display: grid; gap: 16px; min-width: 0; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+h2 { font-family: var(--font-display); font-weight: 500; font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted); margin: 0 0 10px; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin: 0; }
+.stats div { display: grid; gap: 2px; }
+.stats dt { font-size: 0.75rem; color: var(--muted); }
+.stats dd { margin: 0; font-family: var(--font-mono); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.swatches { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.swatches li { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 0.8125rem; }
+.sw { width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(0,0,0,.18); }
+.swatches .n { font-family: var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.views { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.views figure { margin: 0; cursor: zoom-in; }
+.views img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); display: block; }
+.views figcaption { font-size: 0.75rem; color: var(--muted); margin-top: 3px; }
+.notes { margin: 0; padding-left: 18px; font-size: 0.8125rem; display: grid; gap: 6px; }
+.lightbox { position: fixed; inset: 0; background: rgba(10,10,8,.82); display: grid; place-items: center; z-index: 20;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.lightbox img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
+.err { padding: 24px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1 id="title">Tortue en briques</h1>
+    <span class="tag">Brick Forge · reconstruction v1 · pentes et tuiles</span>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="stage" id="stage"><span class="hint">Glisser pour tourner · molette ou pincer pour zoomer</span></div>
+      <div class="controls">
+        <label for="layer">Couches visibles <input type="range" id="layer" min="1" value="1"> <span id="layerVal" class="n"></span></label>
+        <button class="btn" id="studsBtn" aria-pressed="true">Tenons</button>
+        <button class="btn" id="spinBtn" aria-pressed="false">Rotation auto</button>
+        <button class="btn" id="resetBtn">Recentrer</button>
+      </div>
+    </div>
+
+    <aside>
+      <section>
+        <h2>Le modèle</h2>
+        <dl class="stats">
+          <div><dt>Pièces</dt><dd id="sParts"></dd></div>
+          <div><dt>Références</dt><dd id="sRefs"></dd></div>
+          <div><dt>Emprise (tenons)</dt><dd id="sSize"></dd></div>
+          <div><dt>Hauteur (plaques)</dt><dd id="sHeight"></dd></div>
+          <div><dt>Pentes</dt><dd id="sSlopes"></dd></div>
+          <div><dt>Tuiles / plaques</dt><dd id="sFlat"></dd></div>
+        </dl>
+      </section>
+      <section>
+        <h2>Vues Gemini utilisées</h2>
+        <div class="views" id="views"></div>
+      </section>
+      <section>
+        <h2>Couleurs (nombre de pièces)</h2>
+        <ul class="swatches" id="swatches"></ul>
+      </section>
+      <section>
+        <h2>Limites connues</h2>
+        <ul class="notes">
+          <li>Intérieur plein en plaques : encore trop de pièces.</li>
+          <li>Pentes seulement sur les bords du dessus, pas encore sur les flancs.</li>
+          <li>Couleurs faussées par les reflets et les ombres de l'image.</li>
+          <li>Stabilité non vérifiée.</li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const DATA = /*__DATA__*/null;
+const PLATE_H = 0.4; // hauteur d'une plaque en pas de tenon
+
+const $ = (id) => document.getElementById(id);
+const subject = DATA.subject.charAt(0).toUpperCase() + DATA.subject.slice(1);
+$("title").textContent = subject + " en briques";
+$("sParts").textContent = DATA.nParts;
+$("sRefs").textContent = DATA.nRefs;
+$("sSize").textContent = DATA.size[0] + " × " + DATA.size[1];
+$("sHeight").textContent = DATA.size[2];
+const K = DATA.kinds || {};
+$("sSlopes").textContent = ((K.curved || 0) + (K.cheese || 0)) + " (" + (K.curved || 0) + " courbes)";
+$("sFlat").textContent = (K.tile || 0) + " / " + (K.plate || 0);
+
+const NAMES = { concept: "Concept", dessus: "Dessus", profil: "Profil", face: "Face", dos: "Dos", dessous: "Dessous" };
+for (const v of DATA.views) {
+  const f = document.createElement("figure");
+  f.innerHTML = `<img alt="Vue ${NAMES[v.name] || v.name}" src="${v.src}"><figcaption>${NAMES[v.name] || v.name}</figcaption>`;
+  f.addEventListener("click", () => {
+    const lb = document.createElement("div");
+    lb.className = "lightbox";
+    lb.innerHTML = `<img alt="" src="${v.src}">`;
+    lb.addEventListener("click", () => lb.remove());
+    document.body.appendChild(lb);
+  });
+  $("views").appendChild(f);
+}
+for (const c of DATA.palette) {
+  const li = document.createElement("li");
+  li.innerHTML = `<span class="sw" style="background:${c.hex}"></span><span>${c.name}</span><span class="n">${c.n}</span>`;
+  $("swatches").appendChild(li);
+}
+
+function start() {
+  if (!window.THREE || !THREE.OrbitControls) {
+    $("stage").innerHTML = '<p class="err">Impossible de charger la bibliothèque 3D. Recharge la page.</p>';
+    return;
+  }
+  const stage = $("stage");
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  stage.prepend(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(35, 4 / 3, 0.1, 1000);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8170, 0.75));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.75);
+  sun.position.set(20, 40, 30);
+  scene.add(sun);
+
+  const [W, L, H] = DATA.size;
+  const root = new THREE.Group();
+  root.position.set(-W / 2, 0, -L / 2);
+  scene.add(root);
+
+  const tmp = new THREE.Object3D();
+  const col = new THREE.Color();
+  const mat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.0 });
+  const matSlope = new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.0, side: THREE.DoubleSide });
+
+  // Pièces : une géométrie par forme, instanciée ; les matrices placent chaque pièce
+  const SHAPES = {
+    // profil (abscisse = profondeur depuis le bord bas, ordonnée = hauteur), extrudé sur la largeur
+    cheese: (D) => [[0, 0], [D, 0], [D, 0.8], [0, 0.07]],
+    curved: (D) => {
+      const pts = [[0, 0], [D, 0], [D, 0.8], [D * 0.63, 0.8]];
+      for (let a = 1; a <= 10; a++) {            // quart d'ellipse jusqu'au bord bas
+        const th = (a / 10) * Math.PI / 2;
+        pts.push([D * 0.63 * (1 - Math.sin(th)), 0.07 + (0.8 - 0.07) * Math.cos(th)]);
+      }
+      return pts;
+    },
+  };
+  const geoCache = {};
+  function geometry(kind, w, D, dk) {
+    const key = kind + w + "x" + D + "x" + dk;
+    if (geoCache[key]) return geoCache[key];
+    let g;
+    if (kind === "plate" || kind === "tile") {
+      g = new THREE.BoxGeometry(1, 1, 1);
+      g.translate(0.5, 0.5, 0.5);
+    } else {
+      const shape = new THREE.Shape(SHAPES[kind](D).map(([x, y]) => new THREE.Vector2(x, y)));
+      g = new THREE.ExtrudeGeometry(shape, { depth: w, bevelEnabled: false });
+    }
+    return (geoCache[key] = g);
+  }
+  const groups = {};
+  DATA.pieces.forEach((pc, n) => {
+    const [kind, i, j, k, di, dj, dk, c, si, sj] = pc;
+    const along = kind === "plate" || kind === "tile" ? 0 : (si !== 0 ? di : dj); // profondeur de la pente
+    const width = kind === "plate" || kind === "tile" ? 0 : (si !== 0 ? dj : di);
+    const key = kind + ":" + width + ":" + along;
+    (groups[key] = groups[key] || { kind, width, along, items: [] }).items.push(n);
+  });
+  const meshes = [];
+  const pieceMats = new Array(DATA.pieces.length);
+  const pieceMesh = new Array(DATA.pieces.length);
+  const pieceIdx = new Array(DATA.pieces.length);
+  const m4 = new THREE.Matrix4();
+  const gap = 0.03;
+  for (const key in groups) {
+    const grp = groups[key];
+    const geo = geometry(grp.kind, grp.width, grp.along, 2);
+    const mesh = new THREE.InstancedMesh(geo, grp.kind === "plate" || grp.kind === "tile" ? mat : matSlope, grp.items.length);
+    grp.items.forEach((n, idx) => {
+      const [kind, i, j, k, di, dj, dk, c, si, sj] = DATA.pieces[n];
+      if (kind === "plate" || kind === "tile") {
+        m4.makeScale(di - gap, dk * PLATE_H - 0.015, dj - gap);
+        m4.setPosition(i + gap / 2, k * PLATE_H, j + gap / 2);
+      } else {
+        // repère local : x = de bas en haut de la pente, y = vertical, z = largeur
+        const xAxis = new THREE.Vector3(-si, 0, -sj);
+        const yAxis = new THREE.Vector3(0, 1, 0);
+        const zAxis = new THREE.Vector3().crossVectors(xAxis, yAxis); // repère direct : normales correctes
+        // le bord bas est du côté de la descente ; l'extrusion part du côté min ou max selon zAxis
+        const ox = i + (si > 0 || zAxis.x < 0 ? di : 0), oz = j + (sj > 0 || zAxis.z < 0 ? dj : 0);
+        m4.makeBasis(xAxis, yAxis, zAxis);
+        m4.setPosition(ox, k * PLATE_H, oz);
+      }
+      mesh.setMatrixAt(idx, m4);
+      mesh.setColorAt(idx, col.set(DATA.colorHex[c]));
+      pieceMats[n] = m4.clone(); pieceMesh[n] = mesh; pieceIdx[n] = idx;
+    });
+    root.add(mesh);
+    meshes.push(mesh);
+  }
+
+  // Tenons
+  const cyl = new THREE.CylinderGeometry(0.3, 0.3, 0.17, 16);
+  const studs = new THREE.InstancedMesh(cyl, new THREE.MeshStandardMaterial({ roughness: 0.45 }), Math.max(1, DATA.studs.length));
+  if (!DATA.studs.length) { studs.count = 0; studs.setColorAt(0, col.set("#ffffff")); }
+  DATA.studs.forEach(([i, j, k, c], n) => {
+    tmp.position.set(i + 0.5, (k + 1) * PLATE_H + 0.085, j + 0.5);
+    tmp.scale.set(1, 1, 1);
+    tmp.updateMatrix();
+    studs.setMatrixAt(n, tmp.matrix);
+    studs.setColorAt(n, col.set(DATA.colorHex[c]));
+  });
+  root.add(studs);
+
+  // Couche maximale visible : on masque par instance (échelle nulle)
+  const studMats = DATA.studs.map((_, n) => { const m = new THREE.Matrix4(); studs.getMatrixAt(n, m); return m; });
+  const zero = new THREE.Matrix4().makeScale(0, 0, 0);
+  const slider = $("layer");
+  slider.max = H; slider.value = H;
+  function applyLayer() {
+    const kmax = +slider.value;
+    $("layerVal").textContent = kmax + " / " + H;
+    DATA.pieces.forEach((p, n) => pieceMesh[n].setMatrixAt(pieceIdx[n], p[3] < kmax ? pieceMats[n] : zero));
+    DATA.studs.forEach((s, n) => studs.setMatrixAt(n, s[2] < kmax ? studMats[n] : zero));
+    meshes.forEach((m) => (m.instanceMatrix.needsUpdate = true));
+    studs.instanceMatrix.needsUpdate = true;
+  }
+  slider.addEventListener("input", applyLayer);
+  applyLayer();
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  const target = new THREE.Vector3(0, H * PLATE_H * 0.4, 0);
+  function reset() {
+    const r = Math.max(W, L) * 1.6;
+    camera.position.set(r * 0.65, r * 0.6, -r * 0.75); // tête (j = 0) vers la caméra
+    controls.target.copy(target);
+    controls.update();
+  }
+  reset();
+  $("resetBtn").addEventListener("click", reset);
+  const studsBtn = $("studsBtn");
+  studsBtn.addEventListener("click", () => {
+    studs.visible = !studs.visible;
+    studsBtn.setAttribute("aria-pressed", String(studs.visible));
+  });
+  const spinBtn = $("spinBtn");
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  spinBtn.addEventListener("click", () => {
+    controls.autoRotate = !controls.autoRotate;
+    spinBtn.setAttribute("aria-pressed", String(controls.autoRotate));
+  });
+
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage);
+  resize();
+  (function loop() {
+    controls.autoRotateSpeed = reduce ? 0.6 : 1.5;
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  })();
+}
+start();
+</script>

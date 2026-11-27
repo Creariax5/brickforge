@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brick Forge Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="/static/style.css?v=10">
+<link rel="stylesheet" href="/static/shell.css?v=25">
+</head>
+<body>
+<div class="app">
+  <nav class="nav" aria-label="Navigation">
+    <a class="brand" href="#/">Brick Forge <span>Lab</span></a>
+    <a class="navitem" href="#/" data-nav="home">Cahier de recherche</a>
+    <a class="navitem" href="#/bac-a-sable" data-nav="sandbox">Bac à sable</a>
+    <a class="navitem" href="#/explorateur" data-nav="explorer">Explorateur de sets</a>
+    <div class="navsec">Recherches</div>
+    <div id="navNotes" class="navlist"></div>
+    <div class="navsec">Sujets</div>
+    <div id="navSubjects" class="navlist"></div>
+    <a class="live" id="liveBadge" href="#/note/06-detecteur" hidden></a>
+  </nav>
+
+  <main class="main">
+    <header class="pagehead" id="pageHead"></header>
+    <div class="segbar" id="segBar" hidden>
+      <label class="runpick">Lancement SAM <select id="runSelect"></select></label>
+      <div class="spacer"></div>
+      <label class="chk"><input type="checkbox" id="reuseSeg" checked> Réutiliser le découpage</label>
+      <input id="runLabel" class="runlabel" placeholder="Étiquette (optionnel)" maxlength="80">
+      <button class="btn" id="runMobile">Lancer · MobileSAM</button>
+      <button class="btn" id="runVith">Lancer · SAM complet</button>
+    </div>
+    <div class="pages">
+    <section class="panel page-home" id="page-home" hidden></section>
+    <section class="panel page-note" id="page-note" hidden></section>
+    <section class="panel page-explorer" id="page-explorer" hidden></section>
+    <section class="panel page-sandbox" id="page-sandbox" hidden>
+      <div class="sb">
+        <aside class="sb-side">
+          <div class="field"><span>Pièce</span>
+            <input id="sbSearch" placeholder="Rechercher (ex. 3001, curved, tile 1 x 2)">
+            <div class="galkinds sb-kinds" id="sbKinds"></div>
+            <div class="sb-parts" id="sbParts"></div>
+            <small class="muted" id="sbCurrent"></small>
+          </div>
+          <div class="field"><span>Couleur</span><div class="swatches" id="sbColors"></div></div>
+        </aside>
+        <div class="sb-main">
+          <div class="toolbar">
+            <label class="runpick">Création <select id="sbSelect"></select></label>
+            <button class="btn small" id="sbNewBtn">Nouvelle</button>
+            <input id="sbNewName" class="runlabel" placeholder="Renommer en…" maxlength="60">
+            <button class="btn small" id="sbRenameBtn">Renommer</button>
+            <div class="spacer"></div>
+            <button class="tool" id="sbMode" title="S" aria-pressed="false">Mode : poser (S)</button>
+            <button class="tool" id="sbRotate" title="R">Tourner (R)</button>
+            <button class="tool" id="sbUndo" title="Ctrl+Z">Annuler</button>
+            <button class="tool" id="sbRedo" title="Ctrl+Y">Rétablir</button>
+            <button class="btn small" id="sbImport">Importer…</button>
+            <button class="tool" id="sbSide" title="P">Palette (P)</button>
+            <button class="tool" id="sbFull" title="F">Plein écran (F)</button>
+            <button class="btn small" id="sbCheck">Vérifier</button>
+            <button class="btn small" id="sbExport">Exporter .ldr</button>
+          </div>
+          <div class="sb3d" id="sb3d"><div class="sb-hotbar" id="sbHotbar"></div></div>
+          <div class="sb-status"><span id="sbStats"></span><span class="muted" id="sbHint"></span><span class="savestate" id="sbSave"></span></div>
+        </div>
+      </div>
+    </section>
+    <!-- ASSEMBLER -->
+    <section class="panel" id="tab-assembler">
+      <div class="asm">
+        <div class="asm-main">
+          <div class="toolbar">
+            <div class="seg" role="group" aria-label="Caméra">
+              <button class="tool camBtn" data-cam="34" aria-pressed="true">3/4</button>
+              <button class="tool camBtn" data-cam="dessus" aria-pressed="false">Dessus</button>
+              <button class="tool camBtn" data-cam="profil" aria-pressed="false">Profil</button>
+              <button class="tool camBtn" data-cam="face" aria-pressed="false">Face</button>
+              <button class="tool camBtn" data-cam="dos" aria-pressed="false">Dos</button>
+              <button class="tool camBtn" data-cam="dessous" aria-pressed="false">Dessous</button>
+            </div>
+            <label class="chk"><input type="checkbox" id="asmStruct" checked> Structure</label>
+            <label class="chk"><input type="checkbox" id="asmHighlight" checked> Surligner à vérifier</label>
+            <button class="tool" id="asmUndo" title="Ctrl+Z">Annuler</button>
+            <span class="seg" id="asmPhoto"></span>
+            <div class="spacer"></div>
+            <span class="progress" id="asmStats"></span>
+            <span class="savestate" id="asmSave"></span>
+            <button class="btn small" id="asmExport">Exporter .ldr</button>
+          </div>
+          <div class="asm3d" id="asm3d">
+            <div class="empty" id="asmEmpty" hidden></div>
+          </div>
+          <p class="hint">Clic : sélectionner · glisser : tourner · clic droit glissé : déplacer la vue · <kbd>E</kbd> remplacer · <kbd>V</kbd> valider ·
+            <kbd>N</kbd> suivante · <kbd>R</kbd> tourner · flèches : déplacer · <kbd>PgPréc</kbd>/<kbd>PgSuiv</kbd> monter/descendre ·
+            <kbd>A</kbd> ajouter · <kbd>Suppr</kbd> supprimer · <kbd>Ctrl+Z</kbd> annuler</p>
+        </div>
+        <aside class="asm-side">
+          <figure class="asmref" id="asmRef"></figure>
+          <div class="editor" id="asmInspector"></div>
+        </aside>
+      </div>
+      <div class="gallery" id="gallery" hidden>
+        <div class="galbox" role="dialog" aria-labelledby="galTitle">
+          <div class="galhead">
+            <h3 id="galTitle">Choisir une pièce</h3>
+            <input id="galSearch" placeholder="Rechercher (ex. curved, 3069b, tile 1 x 2)">
+            <button class="btn" id="galClose">Fermer</button>
+          </div>
+          <div class="galkinds" id="galKinds"></div>
+          <div class="galgrid" id="galGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANNOTER -->
+    <section class="panel" id="tab-annoter" hidden>
+      <div class="annot">
+        <div class="annot-main">
+          <div class="toolbar">
+            <div class="seg">
+              <button class="tool" id="modeSelect" aria-pressed="true" title="Sélection (S)">Sélection</button>
+              <button class="tool" id="modeDraw" aria-pressed="false" title="Dessiner une pièce manquante (D)">Dessiner</button>
+            </div>
+            <label class="chk"><input type="checkbox" id="layerPred" checked> Détection</label>
+            <label class="chk"><input type="checkbox" id="layerGt" checked> Vérité terrain</label>
+            <label class="chk"><input type="checkbox" id="layerErr"> Erreurs</label>
+            <label class="chk"><input type="checkbox" id="layerLabels" checked> Étiquettes</label>
+            <button class="tool" id="zoomReset" title="Recadrer (0)">Recadrer</button>
+            <div class="spacer"></div>
+            <span class="progress" id="gtProgress"></span>
+            <span class="savestate" id="saveState"></span>
+          </div>
+          <div class="canvaswrap" id="canvasWrap">
+            <div class="stage" id="stage">
+              <img id="mainImg" alt="Vue de dessus" draggable="false">
+              <svg id="overlay"></svg>
+            </div>
+            <div class="empty" id="annotEmpty" hidden></div>
+            <div class="legend">
+              <span><i class="k-plate"></i>plaque</span><span><i class="k-tile"></i>tuile</span>
+              <span><i class="k-curved"></i>pente courbe</span><span><i class="k-slope"></i>pente</span>
+              <span><i class="k-round"></i>ronde</span><span><i class="k-wedge"></i>wedge</span><span><i class="k-other"></i>autre</span>
+            </div>
+          </div>
+          <p class="hint">Molette : zoom · glisser : déplacer · clic : sélectionner · Maj+clic : sélection multiple ·
+            <kbd>V</kbd> valider · <kbd>N</kbd> suivante · <kbd>Suppr</kbd> supprimer · <kbd>D</kbd> dessiner (Entrée pour fermer)</p>
+        </div>
+        <aside class="editor" id="editor"></aside>
+      </div>
+    </section>
+
+    <!-- COMPARER -->
+    <section class="panel" id="tab-comparer" hidden></section>
+
+    <!-- ENTRAINEMENT -->
+    <section class="panel" id="tab-entrainement" hidden></section>
+
+    <!-- MESURES -->
+    <section class="panel" id="tab-mesures" hidden></section>
+
+    <!-- HISTORIQUE -->
+    <section class="panel" id="tab-historique" hidden></section>
+
+    <!-- MODELE 3D -->
+    <section class="panel" id="tab-modele" hidden>
+      <div class="model">
+        <div class="model3d" id="model3d"><span class="hint3d">Glisser pour tourner · molette pour zoomer</span></div>
+        <aside class="modelside" id="modelSide"></aside>
+      </div>
+    </section>
+
+    <!-- VUES -->
+    <section class="panel" id="tab-vues" hidden></section>
+    </div>
+  </main>
+</div>
+
+<footer class="jobbar" id="jobbar" hidden></footer>
+<div class="lightbox" id="lightbox" hidden></div>
+<datalist id="partList"></datalist>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js" defer></script>
+<script src="/static/render.js?v=16" defer></script>
+<script src="/static/app.js?v=9" defer></script>
+<script src="/static/assembler.js?v=12" defer></script>
+<script src="/static/compare.js?v=7" defer></script>
+<script src="/static/training.js?v=9" defer></script>
+<script src="/static/sandbox.js?v=28" defer></script>
+<script src="/static/explorer.js?v=13" defer></script>
+<script src="/static/bhgallery.js?v=1" defer></script>
+<script src="/static/i3d.js?v=5" defer></script>
+<script src="/static/fillive.js?v=3" defer></script>
+<script src="/static/trainfill.js?v=3" defer></script>
+<script src="/static/shell.js?v=12" defer></script>
+</body>
+</html>

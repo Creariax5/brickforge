@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Partir du plus proche, puis retoucher</title>
+<style>
+  :root { --bg: #f2f1ed; --panel: #fff; --fg: #1f1e1b; --muted: #6b665c; --line: #e2ded6; --acc: #c8501e; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161513; --panel: #1f1e1b; --fg: #ebe8e1; --muted: #a39e93; --line: #36332e; --acc: #e06a35; } }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif; }
+  #wrap { display: flex; flex-direction: column; height: 100%; }
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 10px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  select, button { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); }
+  .muted { color: var(--muted); font-size: 12px; }
+  #stage { position: relative; flex: 1; min-height: 380px; background: linear-gradient(#f4f2ee, #e7e3dc); }
+  #stage canvas { display: block; width: 100%; height: 100%; }
+  .labs { position: absolute; inset: 0 0 auto 0; display: grid; grid-template-columns: repeat(3, 1fr); pointer-events: none; }
+  .lab { padding: 8px 12px; } .lab b { display: block; font-size: 13px; color: #1f1e1b; } .lab span { font-size: 12px; color: #4b473f; }
+  .lab .big { font-size: 20px; font-weight: 700; color: #1f1e1b; font-variant-numeric: tabular-nums; }
+  .leg { display: inline-flex; align-items: center; gap: 5px; } .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<div id="wrap">
+  <div class="bar">
+    <button id="prev">←</button><select id="sel"></select><button id="next">→</button>
+    <span class="leg"><i class="sw" style="background:#d6402a;opacity:.5"></i>pièce enlevée</span>
+    <span class="leg"><i class="sw" style="background:#c8501e"></i>pièce ajoutée</span>
+    <label class="leg"><input type="checkbox" id="real" checked> vraies couleurs</label>
+    <span class="muted">Les trois vues tournent ensemble · glisser, molette</span>
+  </div>
+  <div id="stage"><div class="labs" id="labs"></div></div>
+</div>
+<script>
+"use strict";
+(async () => {
+  const S = 1 / 20;
+  const D = await (await fetch("17-refs.json")).json();
+  const colors = await (await fetch("/api/ldcolors")).json();
+  const geo = {};
+  const f32 = (b64) => { const bin = atob(b64), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); return new Float32Array(buf.buffer); };
+  async function loadGeo(parts) {
+    const need = [...new Set(parts)].filter((p) => !(p in geo));
+    for (let i = 0; i < need.length; i += 150) {
+      const ch = need.slice(i, i + 150);
+      const r = await (await fetch("/api/parts-batch", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(ch) })).json();
+      for (const p of ch) geo[p] = r[p] ? { t: f32(r[p].tris), e: f32(r[p].edges) } : null;
+    }
+  }
+  const stage = document.getElementById("stage");
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setScissorTest(true); renderer.outputEncoding = THREE.sRGBEncoding;
+  stage.prepend(renderer.domElement);
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 500);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement); controls.enableDamping = true;
+  const scenes = [0, 1, 2].map(() => { const s = new THREE.Scene(); s.add(new THREE.HemisphereLight(0xffffff, 0x7d756a, 0.95));
+    const a = new THREE.DirectionalLight(0xffffff, 0.55); a.position.set(15, 30, -20); s.add(a); const b = new THREE.DirectionalLight(0xffffff, 0.3); b.position.set(-20, 10, 25); s.add(b); return s; });
+  const edge = new THREE.LineBasicMaterial({ color: 0x1b1b1b, transparent: true, opacity: 0.28 });
+  let realCol = true, cur = 0, roots = [];
+  function mesh(list, mode) {
+    const grp = new THREE.Group();
+    const groups = { solid: [], ghost: [] };
+    for (const p of list) (p.ghost ? groups.ghost : groups.solid).push(p);
+    for (const [k, arr] of Object.entries(groups)) {
+      if (!arr.length) continue;
+      let n = 0, ne = 0; for (const p of arr) { const g = geo[p.part]; if (g) { n += g.t.length; ne += g.e.length; } }
+      const pos = new Float32Array(n), col = new Float32Array(n), ep = new Float32Array(ne); let o = 0, oe = 0; const c = new THREE.Color();
+      for (const p of arr) {
+        const g = geo[p.part]; if (!g) continue;
+        c.set(p.ghost ? "#d6402a" : p.added ? "#c8501e" : realCol ? ((colors[p.color] || {}).hex || "#9a9a9a") : "#c9ccd0"); c.convertSRGBToLinear();
+        const [x, y, z, a, b, cc, d, e, f, gg, hh, i] = p.m;
+        const put = (src, dst, off, cd) => { for (let q = 0; q < src.length; q += 3) { const vx = src[q], vy = src[q + 1], vz = src[q + 2];
+          dst[off + q] = (a * vx + b * vy + cc * vz + x) * S; dst[off + q + 1] = -(d * vx + e * vy + f * vz + y) * S; dst[off + q + 2] = (gg * vx + hh * vy + i * vz + z) * S;
+          if (cd) { cd[off + q] = c.r; cd[off + q + 1] = c.g; cd[off + q + 2] = c.b; } } };
+        put(g.t, pos, o, col); o += g.t.length; put(g.e, ep, oe, null); oe += g.e.length;
+      }
+      const bg = new THREE.BufferGeometry(); bg.setAttribute("position", new THREE.BufferAttribute(pos, 3)); bg.setAttribute("color", new THREE.BufferAttribute(col, 3)); bg.computeVertexNormals();
+      const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+        transparent: k === "ghost", opacity: k === "ghost" ? 0.35 : 1, depthWrite: k !== "ghost" });
+      grp.add(new THREE.Mesh(bg, mat));
+      if (k === "solid") { const eg = new THREE.BufferGeometry(); eg.setAttribute("position", new THREE.BufferAttribute(ep, 3)); grp.add(new THREE.LineSegments(eg, edge)); }
+    }
+    return grp;
+  }
+  const pct = (v) => v == null ? "" : (Math.round(v * 1000) / 10) + " %";
+  let framed = false;
+  async function show(i) {
+    cur = (i + D.examples.length) % D.examples.length;
+    const ex = D.examples[cur];
+    document.getElementById("sel").value = String(cur);
+    const panes = ex.panes;
+    await loadGeo(panes.flatMap((p) => p.placed.map((q) => q.part)));
+    roots.forEach((r, k) => scenes[k].remove(r));
+    roots = panes.map((p) => mesh(p.placed));
+    roots.forEach((r, k) => scenes[k].add(r));
+    document.getElementById("labs").replaceChildren(...panes.map((p) => { const d = document.createElement("div"); d.className = "lab";
+      d.innerHTML = `<b>${p.title}</b><span>${p.sub || ""}</span>${p.score != null ? `<div class="big">${pct(p.score)}</div><span>volume commun avec la vraie</span>` : ""}`; return d; }));
+    if (!framed) {
+      const bb = new THREE.Box3().setFromObject(roots[0]), c = bb.getCenter(new THREE.Vector3()), s = bb.getSize(new THREE.Vector3()), R = Math.max(s.x, s.y) * 2.6;
+      controls.target.copy(c); camera.position.set(c.x - R * 0.45, c.y + R * 0.2, c.z - R * 0.85); framed = true;
+    }
+  }
+  const sel = document.getElementById("sel");
+  D.examples.forEach((ex, i) => { const o = document.createElement("option"); o.value = String(i); o.textContent = ex.label; sel.append(o); });
+  sel.onchange = (e) => show(+e.target.value);
+  document.getElementById("prev").onclick = () => show(cur - 1);
+  document.getElementById("next").onclick = () => show(cur + 1);
+  document.getElementById("real").onchange = (e) => { realCol = e.target.checked; show(cur); };
+  await show(0);
+  const loop = () => {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (Math.abs(renderer.domElement.width / renderer.getPixelRatio() - w) > 1 || Math.abs(renderer.domElement.height / renderer.getPixelRatio() - h) > 1) renderer.setSize(w, h, false);
+    const vw = w / 3; camera.aspect = vw / h; camera.updateProjectionMatrix(); controls.update();
+    scenes.forEach((s, k) => { renderer.setViewport(k * vw, 0, vw, h); renderer.setScissor(k * vw, 0, vw, h); renderer.render(s, camera); });
+    requestAnimationFrame(loop);
+  };
+  loop();
+})();
+</script>
+</body>
+</html>

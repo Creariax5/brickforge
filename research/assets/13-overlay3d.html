@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Donald : vraie LEGO et maillage Hunyuan superposés</title>
+<style>
+  :root { --bg: #f2f1ed; --panel: #fff; --fg: #1f1e1b; --muted: #6b665c; --line: #e2ded6; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161513; --panel: #1f1e1b; --fg: #ebe8e1; --muted: #a39e93; --line: #36332e; } }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif; }
+  #wrap { display: grid; grid-template-columns: 1fr 260px; height: 100%; }
+  #stage { position: relative; min-height: 420px; background: linear-gradient(#f4f2ee, #e7e3dc); }
+  #stage canvas { display: block; width: 100%; height: 100%; }
+  aside { background: var(--panel); border-left: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+  h3 { margin: 0; font-size: 14px; } h4 { margin: 4px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .muted { color: var(--muted); font-size: 12px; }
+  input[type=range] { width: 100%; }
+  button { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); cursor: pointer; }
+  button[aria-pressed=true] { border-color: #c8501e; color: #c8501e; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ramp { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #d6402a, #f1c7bd 40%, #e4e4e4 50%, #bcd2ea 60%, #2f6fb0); }
+  .rampl { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+  #tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 3px 7px; font-size: 12px; display: none; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage"><div id="tip"></div></div>
+  <aside>
+    <h3>Donald : vraie LEGO + Hunyuan recalé</h3>
+    <h4>Maillage Hunyuan</h4>
+    <label><input type="checkbox" id="hOn" checked> Afficher</label>
+    <div class="row" id="hMode"><button data-m="heat" aria-pressed="true">Écart</button><button data-m="tex">Texture</button><button data-m="grey">Gris</button></div>
+    <div id="heatLeg"><div class="ramp"></div><div class="rampl"><span>en retrait ≥ 8 LDU</span><span>±1</span><span>dépasse ≥ 8 LDU</span></div>
+      <p class="muted" style="margin:4px 0 0">Distance de chaque point du maillage à la surface des briques. 8 LDU = 1 plate de haut, ou ⅖ de tenon. Survole pour lire la valeur.</p></div>
+    <div><span class="muted">Opacité</span><input type="range" id="hOp" min="10" max="100" value="100"></div>
+    <h4>Vraie LEGO (40377)</h4>
+    <label><input type="checkbox" id="lOn" checked> Afficher</label>
+    <label><input type="checkbox" id="lCol" checked> Vraies couleurs</label>
+    <div><span class="muted">Opacité</span><input type="range" id="lOp" min="0" max="100" value="35"></div>
+    <h4>Vue</h4>
+    <div class="row"><button data-v="front">Face</button><button data-v="side">Profil</button><button data-v="back">Dos</button><button data-v="top">Dessus</button><button data-v="iso">3/4</button></div>
+    <div><span class="muted">Coupe : hauteur max</span><input type="range" id="cut" min="0" max="100" value="100"></div>
+    <p class="muted" id="stats"></p>
+  </aside>
+</div>
+<script>
+"use strict";
+(async () => {
+  const S = 1 / 20;
+  const stage = document.getElementById("stage"), tip = document.getElementById("tip");
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.localClippingEnabled = true;
+  stage.prepend(renderer.domElement);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x7d756a, 0.95));
+  const l1 = new THREE.DirectionalLight(0xffffff, 0.55); l1.position.set(15, 30, -20); scene.add(l1);
+  const l2 = new THREE.DirectionalLight(0xffffff, 0.3); l2.position.set(-20, 10, 25); scene.add(l2);
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 500);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  const clip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 100);
+
+  // ---------- vraie LEGO
+  const D = await (await fetch("13-diff3d.json")).json();
+  const colors = await (await fetch("/api/ldcolors")).json();
+  const parts = [...new Set(D.lego.map((p) => p.part))];
+  const r = await (await fetch("/api/parts-batch", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(parts) })).json();
+  const f32 = (b64) => { const bin = atob(b64), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); return new Float32Array(buf.buffer); };
+  const g = {}; for (const p of parts) if (r[p]) g[p] = { t: f32(r[p].tris), e: f32(r[p].edges) };
+  let nt = 0, ne = 0; for (const p of D.lego) if (g[p.part]) { nt += g[p.part].t.length; ne += g[p.part].e.length; }
+  const lp = new Float32Array(nt), lc = new Float32Array(nt), le = new Float32Array(ne); let o = 0, oe = 0;
+  const col = new THREE.Color();
+  for (const p of D.lego) {
+    const G = g[p.part]; if (!G) continue;
+    col.set((colors[p.color] || {}).hex || "#999999"); col.convertSRGBToLinear();
+    const [x, y, z, a, b, c, d, e, f, gg, hh, i] = p.m;
+    const put = (src, dst, off, cd) => { for (let k = 0; k < src.length; k += 3) { const vx = src[k], vy = src[k + 1], vz = src[k + 2];
+      dst[off + k] = (a * vx + b * vy + c * vz + x) * S; dst[off + k + 1] = -(d * vx + e * vy + f * vz + y) * S; dst[off + k + 2] = (gg * vx + hh * vy + i * vz + z) * S;
+      if (cd) { cd[off + k] = col.r; cd[off + k + 1] = col.g; cd[off + k + 2] = col.b; } } };
+    put(G.t, lp, o, lc); o += G.t.length; put(G.e, le, oe, null); oe += G.e.length;
+  }
+  const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.BufferAttribute(lp, 3)); lg.setAttribute("color", new THREE.BufferAttribute(lc, 3)); lg.computeVertexNormals();
+  const lmat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide, clippingPlanes: [clip] });
+  const lego = new THREE.Group();
+  lego.add(new THREE.Mesh(lg, lmat));
+  const eg = new THREE.BufferGeometry(); eg.setAttribute("position", new THREE.BufferAttribute(le, 3));
+  const emat = new THREE.LineBasicMaterial({ color: 0x1b1b1b, transparent: true, opacity: 0.25, clippingPlanes: [clip] });
+  lego.add(new THREE.LineSegments(eg, emat));
+  scene.add(lego);
+
+  // ---------- maillage Hunyuan recalé (repère LDU de la vraie, Y LDraw vers le bas)
+  const dist = new Float32Array(await (await fetch("13-donald-hy-dist.bin")).arrayBuffer());
+  const gltf = await new Promise((ok, ko) => new THREE.GLTFLoader().load("13-donald-hy-fit.glb", ok, undefined, ko));
+  const hy = new THREE.Group(); hy.scale.set(S, -S, S); hy.add(gltf.scene); scene.add(hy);
+  let hmesh = null;
+  gltf.scene.traverse((m) => { if (m.isMesh) hmesh = m; });
+  const geo = hmesh.geometry;
+  const uv = geo.attributes.uv;
+  if (uv) { for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i)); uv.needsUpdate = true; }
+  const texMat = hmesh.material; texMat.side = THREE.DoubleSide; texMat.clippingPlanes = [clip]; texMat.metalness = 0; texMat.roughness = 0.7;
+  // carte de chaleur : rouge = en retrait (manque), gris = juste, bleu = dépasse
+  const heat = new Float32Array(geo.attributes.position.count * 3);
+  const cR = new THREE.Color(0xd6402a), cN = new THREE.Color(0xe4e4e4), cB = new THREE.Color(0x2f6fb0), tmp = new THREE.Color();
+  for (let i = 0; i < dist.length && i < geo.attributes.position.count; i++) {
+    const d = dist[i], t = Math.min(1, Math.max(0, (Math.abs(d) - 1) / 7));
+    tmp.copy(cN).lerp(d < 0 ? cR : cB, t); tmp.convertSRGBToLinear();
+    heat[3 * i] = tmp.r; heat[3 * i + 1] = tmp.g; heat[3 * i + 2] = tmp.b;
+  }
+  geo.setAttribute("color", new THREE.BufferAttribute(heat, 3));
+  if (!geo.attributes.normal) geo.computeVertexNormals();      // le GLB exporté est sans normales
+  const heatMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, side: THREE.DoubleSide, clippingPlanes: [clip] });
+  const greyMat = new THREE.MeshStandardMaterial({ color: 0xb4b8bd, roughness: 0.6, side: THREE.DoubleSide, clippingPlanes: [clip] });
+  const mats = { heat: heatMat, tex: texMat, grey: greyMat };
+  let mode = "heat";
+  const setMode = (m) => { mode = m; hmesh.material = mats[m]; applyOp(); document.querySelectorAll("#hMode button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === m))); document.getElementById("heatLeg").style.display = m === "heat" ? "" : "none"; };
+  const $ = (id) => document.getElementById(id);
+  function applyOp() { const v = $("hOp").value / 100; for (const m of Object.values(mats)) { m.transparent = v < 1; m.opacity = v; m.depthWrite = v >= 1; m.needsUpdate = true; } }
+  document.querySelectorAll("#hMode button").forEach((b) => (b.onclick = () => setMode(b.dataset.m)));
+  setMode("heat");
+  $("hOn").onchange = (e) => (hy.visible = e.target.checked);
+  $("hOp").oninput = applyOp;
+  $("lOn").onchange = (e) => (lego.visible = e.target.checked);
+  $("lOp").oninput = (e) => { const v = e.target.value / 100; lmat.opacity = v; lmat.transparent = v < 1; lmat.depthWrite = v >= 1; lmat.needsUpdate = true; emat.opacity = 0.1 + 0.25 * v; };
+  const flat = lc.slice(); const grey = new Float32Array(lc.length).fill(0.75);
+  $("lCol").onchange = (e) => { lg.attributes.color.array.set(e.target.checked ? flat : grey); lg.attributes.color.needsUpdate = true; };
+  const abs = Array.from(dist, Math.abs).sort((a, b) => a - b);
+  $("stats").textContent = `Écart médian ${abs[abs.length >> 1].toFixed(1)} LDU · ${Math.round(100 * dist.filter((d) => Math.abs(d) < 2).length / dist.length)} % du maillage à moins de 2 LDU des briques. Volume commun (cases) : ${Math.round(D.stats.volume * 1000) / 10} %.`;
+
+  // ---------- caméra, vues, coupe
+  const box = new THREE.Box3().setFromObject(lego), ctr = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+  const R = Math.max(size.x, size.y, size.z) * 2.3;
+  controls.target.copy(ctr);
+  const views = { front: [0, 0, -1], back: [0, 0, 1], side: [1, 0, 0], top: [0, 1, 0.001], iso: [-0.45, 0.3, -0.85] };
+  const view = (v) => { camera.position.copy(ctr).add(new THREE.Vector3(...views[v]).normalize().multiplyScalar(R)); controls.update(); };
+  document.querySelectorAll("button[data-v]").forEach((b) => (b.onclick = () => view(b.dataset.v)));
+  view("iso");
+  $("cut").oninput = (e) => { clip.constant = box.min.y + (box.max.y - box.min.y) * e.target.value / 100 + (e.target.value >= 100 ? 100 : 0); };
+
+  // survol : écart au point visé
+  const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+  renderer.domElement.addEventListener("mousemove", (ev) => {
+    if (mode !== "heat" || !hy.visible) { tip.style.display = "none"; return; }
+    const rc = renderer.domElement.getBoundingClientRect();
+    mouse.set(((ev.clientX - rc.left) / rc.width) * 2 - 1, -((ev.clientY - rc.top) / rc.height) * 2 + 1);
+    ray.setFromCamera(mouse, camera);
+    const hit = ray.intersectObject(hmesh)[0];
+    if (!hit || !hit.face) { tip.style.display = "none"; return; }
+    const vs = [hit.face.a, hit.face.b, hit.face.c], d = vs.reduce((s, i) => s + dist[i], 0) / 3;
+    tip.textContent = Math.abs(d) < 1 ? "juste (< 1 LDU)" : `${d > 0 ? "dépasse" : "en retrait"} de ${Math.abs(d).toFixed(1)} LDU (${(Math.abs(d) * 0.4).toFixed(1)} mm)`;
+    tip.style.left = ev.clientX - rc.left + 12 + "px"; tip.style.top = ev.clientY - rc.top + 12 + "px"; tip.style.display = "block";
+  });
+  const loop = () => {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (Math.abs(renderer.domElement.width / renderer.getPixelRatio() - w) > 1 || Math.abs(renderer.domElement.height / renderer.getPixelRatio() - h) > 1) {
+      renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop);
+  };
+  loop();
+})();
+</script>
+</body>
+</html>

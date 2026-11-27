@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Donald : Hunyuan3D 2.1 vs TRELLIS.2</title>
+<style>
+  :root { --bg: #f2f1ed; --panel: #fff; --fg: #1f1e1b; --muted: #6b665c; --line: #e2ded6; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161513; --panel: #1f1e1b; --fg: #ebe8e1; --muted: #a39e93; --line: #36332e; } }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif; }
+  #wrap { display: grid; grid-template-columns: 220px 1fr; height: 100%; }
+  aside { padding: 10px; border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; gap: 8px; }
+  aside img { width: 100%; border-radius: 8px; background: #fff; }
+  .muted { color: var(--muted); font-size: 12px; }
+  #stage { position: relative; background: linear-gradient(#f4f2ee, #e7e3dc); min-height: 380px; }
+  #stage canvas { display: block; width: 100%; height: 100%; }
+  .labs { position: absolute; inset: 0 0 auto 0; display: grid; grid-template-columns: 1fr 1fr; pointer-events: none; }
+  .lab { padding: 8px 12px; color: #1f1e1b; } .lab b { display: block; } .lab span { font-size: 12px; color: #4b473f; }
+  label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+<div id="wrap">
+  <aside>
+    <b>Image d'entrée</b>
+    <img src="15-donald-photo.png" alt="Photo de la vraie BrickHeadz Donald (40377)">
+    <span class="muted">La même photo pour les deux modèles. Les deux tournent ensemble : glisser, molette.</span>
+    <label><input type="checkbox" id="grey"> sans texture (forme seule)</label>
+    <label><input type="checkbox" id="wire"> fil de fer</label>
+  </aside>
+  <div id="stage"><div class="labs">
+    <div class="lab"><b>Hunyuan3D 2.1</b><span>40 000 triangles · ~3 min 40 s sur le Mac</span></div>
+    <div class="lab"><b>TRELLIS.2 (4B, 512)</b><span id="tinfo">Microsoft, MIT · ~5 min 20 s sur le Mac</span></div>
+  </div></div>
+</div>
+<script>
+"use strict";
+(async () => {
+  const stage = document.getElementById("stage");
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setScissorTest(true); renderer.outputEncoding = THREE.sRGBEncoding;
+  stage.prepend(renderer.domElement);
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement); controls.enableDamping = true;
+  const scenes = [0, 1].map(() => { const s = new THREE.Scene(); s.add(new THREE.HemisphereLight(0xffffff, 0x7d756a, 1.0));
+    const a = new THREE.DirectionalLight(0xffffff, 0.6); a.position.set(2, 3, 2); s.add(a); const b = new THREE.DirectionalLight(0xffffff, 0.3); b.position.set(-2, 1, -2); s.add(b); return s; });
+  const load = (url) => new Promise((ok, ko) => new THREE.GLTFLoader().load(url, (g) => ok(g.scene), undefined, ko));
+  const [hy, tr] = await Promise.all([load("15-hunyuan-donald.glb"), load("15-trellis-donald.glb")]);
+  const flipUV = (r) => r.traverse((o) => { const uv = o.geometry && o.geometry.attributes.uv; if (uv) { for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i)); uv.needsUpdate = true; } });
+  flipUV(tr);                                                  // même convention de texture que Hunyuan
+  hy.traverse((o) => { const uv = o.geometry && o.geometry.attributes.uv; if (uv) { for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i)); uv.needsUpdate = true; } });
+  const meshes = [];
+  let tris = 0;
+  [hy, tr].forEach((root, k) => {
+    root.traverse((o) => { if (o.isMesh) { if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals(); o.material.side = THREE.DoubleSide; if ("metalness" in o.material) { o.material.metalness = 0; o.material.roughness = 0.7; } meshes.push([o, o.material]); if (k === 1) tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; } });
+    if (k === 1) root.rotation.x = -Math.PI / 2;                 // TRELLIS.2 exporte Z vers le haut
+    root.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+    const g = new THREE.Group(); const pivot = new THREE.Group(); pivot.add(root); pivot.position.sub(c); g.add(pivot); g.scale.setScalar(1 / size.y); scenes[k].add(g);
+  });
+  document.getElementById("tinfo").textContent = `${Math.round(tris).toLocaleString("fr-FR")} triangles · Microsoft, MIT · ~5 min 20 s sur le Mac`;
+  const grey = new THREE.MeshStandardMaterial({ color: 0xc9ccd0, roughness: 0.6, side: THREE.DoubleSide });
+  const apply = () => { const gr = document.getElementById("grey").checked, wf = document.getElementById("wire").checked;
+    meshes.forEach(([o, m]) => { o.material = gr || wf ? grey : m; }); grey.wireframe = wf; };
+  document.getElementById("grey").onchange = apply; document.getElementById("wire").onchange = apply;
+  camera.position.set(-0.9, 0.35, 1.6); controls.target.set(0, 0, 0);
+  const loop = () => {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (Math.abs(renderer.domElement.width / renderer.getPixelRatio() - w) > 1 || Math.abs(renderer.domElement.height / renderer.getPixelRatio() - h) > 1) renderer.setSize(w, h, false);
+    const vw = w / 2; camera.aspect = vw / h; camera.updateProjectionMatrix(); controls.update();
+    scenes.forEach((s, k) => { renderer.setViewport(k * vw, 0, vw, h); renderer.setScissor(k * vw, 0, vw, h); renderer.render(s, camera); });
+    requestAnimationFrame(loop);
+  };
+  loop();
+})();
+</script>
+</body>
+</html>
